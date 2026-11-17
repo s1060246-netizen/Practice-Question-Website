@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>整合行銷模擬測驗</title>
+<style>
+:root{
+  --bg:#FBF1EF; --card:#FFFFFF; --primary:#C68D84; --light:#EDBBB2; --soft:#D3A5A7;
+  --accent:#A06761; --text:#4F3236; --deep:#5A2E29; --ok:#5F8366; --bad:#A33B34; --line:#EBD3CF;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#2A1A1C; --card:#3A2528; --text:#F3DDD9; --line:#5A3A3D; --light:#6B4044; --deep:#EDBBB2; --ok:#8DB594; --bad:#E58A82; }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:"Noto Serif TC","PingFang TC","Microsoft JhengHei",serif;line-height:1.75;font-size:17px}
+header{background:var(--deep);color:#FBF1EF;padding:18px 20px}
+header h1{margin:0;font-size:1.25rem;letter-spacing:.08em;max-width:720px;margin-inline:auto}
+@media (prefers-color-scheme: dark){ header{background:#1E1214;color:#EDBBB2} }
+main{max-width:720px;margin:0 auto;padding:22px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:22px}
+h2{margin:0 0 .6em;font-size:1.3rem;color:var(--deep)}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);padding:9px 18px}
+button:hover:not(:disabled){background:var(--light);color:var(--deep)}
+button:disabled{opacity:.4;cursor:default}
+button.main{background:var(--accent);color:#fff}
+button.main:hover:not(:disabled){background:var(--deep);color:#fff}
+button:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+.choices{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 22px}
+.choices label{cursor:pointer}
+.choices input{position:absolute;opacity:0}
+.choices span{display:inline-block;padding:8px 18px;border:1.5px solid var(--soft);border-radius:8px}
+.choices input:checked+span{background:var(--primary);border-color:var(--primary);color:#fff}
+.choices input:focus-visible+span{outline:3px solid var(--primary);outline-offset:2px}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:14px}
+.bar i{display:block;height:100%;background:var(--primary);transition:width .2s}
+.meta{font-size:.9rem;opacity:.8;margin-bottom:6px}
+.q{font-size:1.1rem;font-weight:600;margin:0 0 16px}
+.opt{display:block;width:100%;text-align:left;margin-bottom:10px;border-color:var(--soft);color:var(--text);padding:11px 14px}
+.opt.sel{background:var(--light);border-color:var(--accent);color:var(--deep)}
+.nav{display:flex;justify-content:space-between;gap:10px;margin-top:20px}
+.grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:20px}
+.grid button{width:36px;height:36px;padding:0;font-size:.85rem;border-color:var(--soft);color:var(--text)}
+.grid button.done{background:var(--soft);color:#fff;border-color:var(--soft)}
+.grid button.cur{border-color:var(--deep);border-width:2.5px}
+.score{font-size:3.4rem;line-height:1.1;color:var(--deep);margin:4px 0}
+.item{border-top:1px solid var(--line);padding:14px 0}
+.item p{margin:.2em 0}
+.bad{color:var(--bad)} .ok{color:var(--ok)}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header><h1>整合行銷管理師・模擬測驗</h1></header>
+<main id="app"></main>
+<script>
+// [題目, [A,B,C,D], 正解]
+const Q=[
+["以下對「行銷」的敘述何者為非？",["英文為 marketing","中國大陸稱為營銷","行銷等同於銷售","美國行銷協會（AMA）2013 年將行銷定義為行銷就是創造、溝通、傳遞與交換對顧客、客戶、合作夥伴與整體社會有價值的活動、架構與流程。"],"C"],
+["以下對需要（need）與需求（demand）的定義何者為是？",["先有需求才會有需要","需求是人類與生俱來的生理或心理的特徵","需要是反映消費者的購買力","需求 = 需要 + 購買力"],"D"],
+["以下對需要（need）、慾求（want）與需求（demand）關係順序何者為是？",["需要（need）→慾求（want）→需求（demand）","需要（need）→需求（demand）→慾求（want）","需求（demand）→慾求（want）→需要（need）","慾求（want）→需要（need）→需求（demand）"],"A"],
+["小明已經存了 6 萬元想要去買一隻 iphone 16 手機，小明是屬於下列哪一種消費特徵？",["需要（need）","需求（demand）","慾求（want）","以上皆非"],"B"],
+["小華目前正努力打工賺錢準備去購買一隻心儀的 iphone 16 手機，小華是屬於下列哪一種消費特徵？",["需要（need）","需求（demand）","慾求（want）","以上皆非"],"C"],
+["某鞋商想到非洲土著區開發新市場，發覺土著都沒穿鞋子而且沒有經濟能力買鞋，就悻悻然打道回府放棄非洲市場，請問鞋商為何會選擇放棄市場，是因為發覺非洲土著市場？",["有需要沒需求","有需求沒需要","有需要沒慾求","有需求沒慾求"],"A"],
+["某鞋商想到非洲土著區開發新市場，看到土著都沒穿鞋，很高興潛在市場很大，決定留下經營賣鞋的生意，請問鞋商為何會選擇開發這個市場？",["發覺市場有需要","發覺市場有慾求","發覺市場有需求","以上皆非"],"A"],
+["下列敘述何者正確？",["一般商人最希望看到有需要的市場","一般商人最希望看到有需求的市場","一般商人最希望看到有慾求的市場","以上皆是"],"B"],
+["以下對交換（exchange）的說明何者為非？",["所有的產品與服務的買賣都屬交換行為","擔任 NPO 志工也是屬於交換行為","交換一定要有對應的價格","交換的代價可以是金錢、勞務、時間"],"C"],
+["以下敘述何者正確？",["顧客導向＜消費者導向＜市場導向＜社會行銷導向＜行銷導向","消費者導向＜顧客導向＜市場導向＜行銷導向＜社會行銷導向","顧客導向＜消費者導向＜市場導向＜行銷導向＜社會行銷導向","顧客導向＜消費者導向＜行銷導向＜市場導向＜社會行銷導向"],"C"],
+["以下敘述何者為是？",["行銷 2.0 時代，以消費者為王","行銷 3.0 時代，以社會共同價值為王","行銷 4.0 時代，以數位為核心","以上皆是"],"D"],
+["行銷 4.0 時代，是屬於哪種導向的時代？",["生產導向","銷售導向","顧客導向","社會行銷導向"],"D"],
+["《行銷 5.0》一書的作者是誰？",["彼得杜拉克（Peter Ferdinand Drucker）等","麥可波特（Michael Eugene Porter）等","菲利浦科特勒（Philip Kotler）等","大衛．艾克（David A. Aaker）等"],"C"],
+["近來台灣食品業發生食安危機，此乃說明這些嚴重違反食安標準的廠商不具備一種經營導向？",["銷售導向","消費者導向","行銷導向","社會行銷導向"],"D"],
+["下列何者有「現代行銷學之父」的稱號？",["彼得杜拉克（Peter Ferdinand Drucker）","麥可波特（Michael Eugene Porter）","菲利浦科特勒（Philip Kotler）","大衛．艾克（David A. Aaker）"],"C"],
+["華碩廣告標語「華碩品質、堅若磐石」，是強調該品牌那一種經營導向？",["產品導向","銷售導向","顧客導向","社會行銷導向"],"A"],
+["中華航空廣告標語「華航以客為尊」，是強調該品牌那一個經營導向？",["生產導向","銷售導向","消費者導向","社會行銷導向"],"C"],
+["家樂福廣告標語「天天都便宜」，是強調該品牌那一個經營導向？",["生產導向","銷售導向","顧客導向","社會行銷導向"],"B"],
+["Nike 廣告標語「Just Do It」，是強調該品牌哪一個經營導向？",["生產導向","銷售導向","消費者導向","社會行銷導向"],"C"],
+["帝亞吉歐（DIAGEO）之 Johnnie walker 自 2003 年起在台灣積極推動「KEEP WALKING 夢想資助計畫」，是強調該品牌那一個經營導向？",["生產導向","銷售導向","顧客導向","社會行銷導向"],"D"],
+["下列哪一個非屬「社會行銷」範疇？",["善因行銷","紅色行銷","橘色行銷","綠色行銷"],"C"],
+["下列何者屬「社會行銷」範疇？",["善因行銷","紅色行銷","綠色行銷","以上皆是"],"D"],
+["P&G 長期推動「六分鐘護一生」防治子宮頸癌是屬於何種行銷範疇？",["綠色行銷","善因行銷","運動行銷","病毒式行銷"],"B"],
+["麥當勞和星巴克愈來愈重視管控原物料的來源不能來自破壞雨林生產的農作物，此乃屬於何種行銷範疇？",["綠色行銷","橘色行銷","紅色行銷","病毒式行銷"],"A"],
+["「社會行銷」的觀念是同時考量滿足哪三個對象？",["消費者／企業／社會","消費者／政府／社會","消費者／員工／社會","消費者／媒體／社會"],"A"],
+["可口可樂推出北極熊圖案限量瓶包裝，消費者購買限量瓶可樂就捐助世界自然基金會 WWF（World Wildlife Fund），此乃屬？",["綠色行銷","社會行銷","善因行銷","以上皆是"],"D"],
+["由美國 ALS「肌肉萎縮性側索硬化症（俗稱漸凍人症）」協會所發起的「冰桶挑戰」（Ice Bucket Challenge）在全球引發熱潮，此乃屬？",["代言人行銷","社群病毒行銷","善因行銷","以上皆是"],"D"],
+["2006 年起麥當勞承諾，停止出售用亞馬遜森林地區出產的大豆所飼養的牲畜做食品，與綠色和平組織一起保護亞馬遜雨林，此乃屬？",["綠色行銷","善因行銷","社會行銷","以上皆是"],"D"],
+["全球知名廠商（Apple、美國運通）近來紛紛推出紅色系列商品，將紅色外觀產品銷售金額提撥部份比例捐助給公益組織。此乃屬？",["紅色行銷","善因行銷","社會行銷","以上皆是"],"D"],
+["行銷人面對因季節、離尖峰所導致過度供給或需求的波動，應該採取何種行銷策略？",["反行銷","重新行銷","規則行銷","維持行銷"],"C"],
+["某連鎖速食店發覺市場供需已經達到飽和，其該採取何種行銷策略？",["刺激行銷","重新行銷","開發行銷","維持行銷"],"D"],
+["台南某文創百貨假日人潮過多，為了維護服務品質，進行入館人數的流量管制，此乃屬於哪一種行銷策略？",["低行銷","反行銷","規則行銷","維持行銷"],"A"],
+["政府有鑑於酒駕肇事嚴重危及社會民眾安全，對酒駕加強取締、加重刑責，此乃屬於哪一種行銷策略？",["低行銷","反行銷","規則行銷","維持行銷"],"B"],
+["某博物館舉辦特展吸引超額人潮參觀，為了維護服務品質，博物館進行流量管制，此乃屬於哪一種行銷策略？",["低行銷","反行銷","規則行銷","維持行銷"],"A"],
+["某美白化妝品，到歐美開拓市場，發覺大多數歐美白人沒有美白需求，進而改變訴求推護膚保養化妝品，此乃屬於哪一種行銷策略？",["轉換行銷","刺激行銷","開發行銷","維持行銷"],"B"],
+["烘焙業推廣母親節買蛋糕慶祝，改變一般人的節慶消費習慣，此乃屬於哪一種行銷策略？",["轉換行銷","刺激行銷","開發行銷","維持行銷"],"B"],
+["食品業結合零售業將巧克力推廣為情人節代表性的禮品，此乃屬於哪一種行銷策略？",["轉換行銷","刺激行銷","開發行銷","維持行銷"],"B"],
+["「橘色商機」指 50 歲以上熟齡人口，其人生像進入秋天燦爛的楓葉般，這個年齡層的人口特徵是：有錢、空巢期、消費意願高、敢嘗新、善待自己；針對階層人口推廣保健商品、深度旅遊、高階網購……，此乃屬於哪一種行銷策略？",["轉換行銷","刺激行銷","開發行銷","維持行銷"],"C"],
+["愛之味鮮採番茄汁利用先進技術改變配方，讓番茄汁變好喝了，此乃屬於哪一種行銷策略？",["轉換行銷","刺激行銷","開發行銷","維持行銷"],"A"],
+["Gummy Bears 推出兒童維他命軟糖，讓排斥藥味的小朋友願意吃維他命，此乃屬於哪一種行銷策略？",["轉換行銷","刺激行銷","開發行銷","維持行銷"],"A"],
+["政府強力取締毒品，此乃屬於哪一種行銷策略？",["轉換行銷","低行銷","反行銷","維持行銷"],"C"],
+["以下對市場哲學的演進敘述何者為非？",["起始於生產觀念","銷售觀念在於雙贏","行銷觀念在於滿足消費者需求","現在強調社會行銷觀念"],"B"],
+["OEM（Original Equipment Manufacturer）廠商是屬於下列哪一種市場哲學的演進觀念？",["生產觀念","銷售觀念","行銷觀念","社會行銷觀念"],"A"],
+["ODM（Original Design Manufacturer）廠商是屬於下列哪一種市場哲學的演進觀念？",["生產觀念","產品觀念","銷售觀念","行銷觀念"],"B"],
+["OBM（Own Branding & Manufacturing）廠商是屬於下列哪一種市場哲學的演進觀念？",["生產觀念","產品觀念","銷售觀念","行銷觀念"],"D"],
+["以下對市場哲學的演進中「生產觀念」的敘述何者為非？",["規模經濟","標準化生產","大量生產","重品質"],"D"],
+["以下對「銷售觀念」與「行銷觀念」的敘述何者為非？",["銷售起始點在產品生產之後","行銷焦點在產品本身","行銷重心在市場","行銷比銷售更重視顧客關係"],"B"],
+["以下對「銷售觀念」與「行銷觀念」的敘述何者為非？",["行銷起始點在產品生產之後","銷售焦點在產品本身","銷售重心在工廠","行銷手段在整合行銷"],"A"],
+["以下對「銷售觀念」與「行銷觀念」的敘述何者為非？",["行銷起始點在產品生產之前","銷售手段在推廣","銷售關鍵技術在需求界定","行銷利潤在顧客滿足"],"C"],
+["以下對「銷售觀念」與「行銷觀念」的敘述何者為非？",["行銷強調重複交換","銷售利害關係在你輸我贏","銷售關鍵技術在銷售技巧","銷售比行銷更重視顧客關係"],"D"],
+["菲利普．科特勒（Kotler Philip）及辛赫（Ravi Singh）提出「企業經理人只在乎顧客需求，卻忽視了產品品質的重要性。」是指企業主對行銷有？",["行銷遠視症","行銷近視症","行銷大頭症","行銷偏視症"],"A"],
+["台灣很多地方將當地特色的農產品，在未瞭解消費者的需求之下，一味地衍生成各種加工商品，並未因此而熱賣，此可謂患了？",["行銷近視症","行銷遠視症","行銷大頭症","行銷偏視症"],"A"],
+["行銷大師李維特（Theodore Levitt）提出「企業經理人僅重視當前的產品本身的議題，卻忽略顧客需求及其所追求的利益」，此稱之為？",["行銷遠視症（marketing hyperopia）","行銷近視症（marketing myopia）","行銷 2.0","行銷 3.0"],"B"],
+["請問下列何者不屬於行銷可為消費者所創造的效用？",["地點效用","資訊效用","價格效用","時間效用"],"C"],
+["以下對行銷概念的敘述何者為非？",["行銷管理亦可稱為顧客管理與需求管理","差異化與市場定位是行銷管理重要的議題","行銷可以創造顧客的需要","顧客關係的建立基礎在顧客價值與滿意度"],"C"]
+];
+const L=["A","B","C","D"], app=document.getElementById("app");
+let list=[], ans=[], cur=0, count=20;
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+
+function home(){
+  const opts=[10,20,Q.length].map(n=>`<label><input type="radio" name="n" value="${n}" ${n===count?"checked":""}><span>${n===Q.length?"全部 "+n:n} 題</span></label>`).join("");
+  app.innerHTML=`<div class="card"><h2>第一篇　行銷管理概論</h2>
+  <p>每次從 ${Q.length} 題中隨機抽題，作答完交卷後會顯示分數與答錯的題目。選項順序不會打亂。</p>
+  <div class="choices" role="radiogroup" aria-label="題數">${opts}</div>
+  <button class="main" id="go">開始測驗</button></div>`;
+  document.getElementById("go").onclick=()=>{
+    count=+document.querySelector("input[name=n]:checked").value;
+    list=shuffle(Q).slice(0,count); ans=Array(count).fill(null); cur=0; quiz();
+  };
+}
+
+function quiz(){
+  const [q,o]=list[cur], done=ans.filter(x=>x).length;
+  app.innerHTML=`<div class="card">
+  <div class="bar"><i style="width:${done/count*100}%"></i></div>
+  <div class="meta">第 ${cur+1} / ${count} 題　已作答 ${done} 題</div>
+  <p class="q">${esc(q)}</p>
+  ${o.map((t,i)=>`<button class="opt ${ans[cur]===L[i]?"sel":""}" data-k="${L[i]}">（${L[i]}）${esc(t)}</button>`).join("")}
+  <div class="nav"><button id="prev" ${cur===0?"disabled":""}>上一題</button>
+  ${cur<count-1?'<button class="main" id="next">下一題</button>':'<button class="main" id="submit">交卷</button>'}</div>
+  <div class="grid">${list.map((_,i)=>`<button data-i="${i}" class="${ans[i]?"done":""} ${i===cur?"cur":""}" aria-label="第 ${i+1} 題">${i+1}</button>`).join("")}</div>
+  <div class="nav"><button id="quit">放棄並回首頁</button>${cur<count-1?'<button id="submit2">提前交卷</button>':'<span></span>'}</div></div>`;
+  app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{ans[cur]=b.dataset.k;quiz()});
+  app.querySelectorAll(".grid button").forEach(b=>b.onclick=()=>{cur=+b.dataset.i;quiz()});
+  const on=(id,f)=>{const e=document.getElementById(id);if(e)e.onclick=f};
+  on("prev",()=>{cur--;quiz()}); on("next",()=>{cur++;quiz()});
+  on("submit",submit); on("submit2",submit);
+  on("quit",()=>{if(confirm("確定放棄這次測驗嗎？"))home()});
+}
+
+function submit(){
+  const blank=ans.filter(x=>!x).length;
+  if(blank&&!confirm(`還有 ${blank} 題未作答，確定交卷嗎？`))return;
+  const wrong=[]; list.forEach((it,i)=>{if(ans[i]!==it[2])wrong.push(i)});
+  const right=count-wrong.length, score=Math.round(right/count*100);
+  app.innerHTML=`<div class="card"><h2>測驗結果</h2>
+  <div class="score">${score} 分</div>
+  <p>答對 ${right} 題，答錯或未答 ${wrong.length} 題，共 ${count} 題。</p>
+  <button class="main" id="again">重新開始</button></div>
+  ${wrong.length?`<div class="card" style="margin-top:16px"><h2>需要檢討的題目</h2>${wrong.map(i=>{const [q,o,k]=list[i],a=ans[i];
+    return `<div class="item"><p><b>${esc(q)}</b></p>
+    <p class="bad">你的答案：${a?`（${a}）${esc(o[L.indexOf(a)])}`:"未作答"}</p>
+    <p class="ok">正確答案：（${k}）${esc(o[L.indexOf(k)])}</p></div>`}).join("")}</div>`:'<p class="ok" style="margin-top:16px">全部答對！</p>'}`;
+  document.getElementById("again").onclick=home;
+  window.scrollTo(0,0);
+}
+home();
+</script>
+</body>
+</html>
